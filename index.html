@@ -125,12 +125,18 @@
   </footer>
 
   <script>
+    // Variable global para controlar permisos de administrador
+    let isAdmin = false;
+
     // Acceso administrador
     function accederAdmin() {
       const clave = prompt("Ingrese la clave de administrador:");
       if (clave === "Auto2025*") {
+        isAdmin = true;
         document.getElementById("admin").classList.remove("hidden");
         window.location.hash = "#admin";
+        listaVehiculos.innerHTML = '';
+        vehiculos.forEach(auto => mostrarVehiculo(auto)); // refresca lista con botones
       } else if (clave !== null) {
         alert("Clave incorrecta.");
       }
@@ -203,10 +209,11 @@
           <h3 class="font-bold text-xl">${auto.marca} ${auto.modelo}</h3>
           <p>Año: ${auto.anio}</p>
           <p>Precio: ${auto.precio} ${auto.moneda}</p>
+          ${isAdmin ? `
           <div class="flex justify-end gap-2 mt-2">
             <button class="bg-yellow-400 text-white px-2 py-1 rounded hover:bg-yellow-500" onclick="editarVehiculo(${index})">Editar</button>
             <button class="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700" onclick="borrarVehiculo(${index})">Borrar</button>
-          </div>
+          </div>` : ''}
         </div>
       `;
 
