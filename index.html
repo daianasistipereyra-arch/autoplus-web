@@ -8,12 +8,10 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Firebase -->
   <script type="module">
-    // Importar librerías
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-app.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-storage.js";
-    import { getFirestore, collection, getDocs, addDoc, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-storage.js";
+    import { getFirestore, collection, getDocs, addDoc, setDoc, doc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-firestore.js";
 
-    // Tu configuración de Firebase
     const firebaseConfig = {
       apiKey: "TU_API_KEY",
       authDomain: "TU_AUTH_DOMAIN",
@@ -27,228 +25,234 @@
     const storage = getStorage(app);
     const db = getFirestore(app);
 
-    window.firebaseApp = { storage, db, collection, getDocs, addDoc, setDoc, doc, deleteDoc }; // para usar en el resto del código
+    window.firebaseApp = { storage, db, collection, getDocs, addDoc, setDoc, doc, deleteDoc, getDoc, ref, uploadBytes, getDownloadURL, deleteObject };
   </script>
 </head>
 <body class="bg-gray-100 text-gray-900">
 
-  <!-- Encabezado -->
-  <header class="bg-white shadow-md">
-    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-      <div class="flex items-center space-x-2">
-        <img src="img/logo.png" alt="AutoPlus" class="h-12">
-        <h1 class="text-2xl font-bold">AutoPlus</h1>
+<header class="bg-white shadow-md">
+  <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+    <div class="flex items-center space-x-2">
+      <img src="img/logo.png" alt="AutoPlus" class="h-12">
+      <h1 class="text-2xl font-bold">AutoPlus</h1>
+    </div>
+    <nav class="space-x-4 flex items-center">
+      <a href="#vehiculos" class="hover:text-blue-500">Vehículos</a>
+      <a href="#inspeccion" class="hover:text-blue-500">Inspección</a>
+      <a href="#contacto" class="hover:text-blue-500">Contacto</a>
+      <button onclick="accederAdmin()" title="Acceso administrador" class="text-blue-600 text-2xl font-bold hover:text-blue-800">+</button>
+    </nav>
+  </div>
+</header>
+
+<section id="vehiculos" class="py-16 px-4">
+  <div class="container mx-auto max-w-6xl">
+    <h2 class="text-3xl font-bold text-center mb-8">Vehículos Disponibles</h2>
+    <div class="mb-6 flex justify-center">
+      <input type="text" id="buscador" placeholder="Buscar por marca o modelo..." class="w-full md:w-1/2 border p-2 rounded-lg shadow-sm" onkeyup="filtrarVehiculos()">
+    </div>
+    <div id="vehiculos-lista" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+  </div>
+</section>
+
+<section id="admin" class="py-16 px-4 bg-gray-50 hidden">
+  <div class="container mx-auto max-w-4xl">
+    <h2 class="text-3xl font-bold text-center mb-8">Panel de Administración</h2>
+    <form id="formularioVehiculos" class="space-y-4 bg-white p-6 rounded shadow-md">
+      <div>
+        <label class="block mb-1 font-semibold">Marca</label>
+        <input type="text" id="marca" class="w-full border p-2 rounded" required>
       </div>
-      <nav class="space-x-4 flex items-center">
-        <a href="#vehiculos" class="hover:text-blue-500">Vehículos</a>
-        <a href="#inspeccion" class="hover:text-blue-500">Inspección</a>
-        <a href="#contacto" class="hover:text-blue-500">Contacto</a>
-        <button onclick="accederAdmin()" title="Acceso administrador" class="text-blue-600 text-2xl font-bold hover:text-blue-800">+</button>
-      </nav>
-    </div>
-  </header>
-
-  <!-- Vehículos Disponibles -->
-  <section id="vehiculos" class="py-16 px-4">
-    <div class="container mx-auto max-w-6xl">
-      <h2 class="text-3xl font-bold text-center mb-8">Vehículos Disponibles</h2>
-      <div class="mb-6 flex justify-center">
-        <input 
-          type="text" 
-          id="buscador" 
-          placeholder="Buscar por marca o modelo..." 
-          class="w-full md:w-1/2 border p-2 rounded-lg shadow-sm"
-          onkeyup="filtrarVehiculos()"
-        >
+      <div>
+        <label class="block mb-1 font-semibold">Modelo</label>
+        <input type="text" id="modelo" class="w-full border p-2 rounded" required>
       </div>
-      <div id="vehiculos-lista" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
-    </div>
-  </section>
-
-  <!-- Panel de Administración -->
-  <section id="admin" class="py-16 px-4 bg-gray-50 hidden">
-    <div class="container mx-auto max-w-4xl">
-      <h2 class="text-3xl font-bold text-center mb-8">Panel de Administración</h2>
-
-      <form id="formularioVehiculos" class="space-y-4 bg-white p-6 rounded shadow-md">
-        <div>
-          <label class="block mb-1 font-semibold">Marca</label>
-          <input type="text" id="marca" class="w-full border p-2 rounded" required>
+      <div>
+        <label class="block mb-1 font-semibold">Año</label>
+        <input type="number" id="anio" class="w-full border p-2 rounded" required>
+      </div>
+      <div class="flex gap-2">
+        <div class="flex-1">
+          <label class="block mb-1 font-semibold">Precio</label>
+          <input type="number" id="precio" class="w-full border p-2 rounded" required>
         </div>
-        <div>
-          <label class="block mb-1 font-semibold">Modelo</label>
-          <input type="text" id="modelo" class="w-full border p-2 rounded" required>
+        <div class="flex-1">
+          <label class="block mb-1 font-semibold">Moneda</label>
+          <select id="moneda" class="w-full border p-2 rounded">
+            <option value="USD">USD</option>
+            <option value="ARS">ARS</option>
+          </select>
         </div>
-        <div>
-          <label class="block mb-1 font-semibold">Año</label>
-          <input type="number" id="anio" class="w-full border p-2 rounded" required>
-        </div>
-        <div class="flex gap-2">
-          <div class="flex-1">
-            <label class="block mb-1 font-semibold">Precio</label>
-            <input type="number" id="precio" class="w-full border p-2 rounded" required>
-          </div>
-          <div class="flex-1">
-            <label class="block mb-1 font-semibold">Moneda</label>
-            <select id="moneda" class="w-full border p-2 rounded">
-              <option value="USD">USD</option>
-              <option value="ARS">ARS</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label class="block mb-1 font-semibold">Imágenes</label>
-          <input type="file" id="imagenes" class="w-full border p-2 rounded" accept="image/*" multiple>
-        </div>
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Guardar Vehículo</button>
-      </form>
-    </div>
-  </section>
+      </div>
+      <div>
+        <label class="block mb-1 font-semibold">Imágenes</label>
+        <input type="file" id="imagenes" class="w-full border p-2 rounded" accept="image/*" multiple>
+      </div>
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Guardar Vehículo</button>
+    </form>
+  </div>
+</section>
 
-  <!-- Footer -->
-  <footer class="bg-white py-4 text-center text-gray-600">
-    <p>&copy; 2025 AutoPlus - Todos los derechos reservados</p>
-  </footer>
+<footer class="bg-white py-4 text-center text-gray-600">
+  <p>&copy; 2025 AutoPlus - Todos los derechos reservados</p>
+</footer>
 
-  <script type="module">
-    import { storage, db, collection, getDocs, addDoc, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-firestore.js";
-    import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-storage.js";
+<script type="module">
+  import { storage, db, collection, getDocs, addDoc, setDoc, doc, deleteDoc, getDoc, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-firestore.js";
 
-    let isAdmin = false;
-    const formulario = document.getElementById('formularioVehiculos');
-    const listaVehiculos = document.getElementById('vehiculos-lista');
+  let isAdmin = false;
+  let editId = null;
+  const formulario = document.getElementById('formularioVehiculos');
+  const listaVehiculos = document.getElementById('vehiculos-lista');
 
-    // Acceso administrador
-    window.accederAdmin = function() {
-      const clave = prompt("Ingrese la clave de administrador:");
-      if (clave === "Auto2025*") {
-        isAdmin = true;
-        document.getElementById("admin").classList.remove("hidden");
-        cargarVehiculos();
-      } else if (clave !== null) {
-        alert("Clave incorrecta.");
-      }
-    };
-
-    // Función para cargar vehículos desde Firestore
-    async function cargarVehiculos() {
-      listaVehiculos.innerHTML = '';
-      const querySnapshot = await getDocs(collection(db, "vehiculos"));
-      querySnapshot.forEach(docSnap => {
-        const auto = docSnap.data();
-        auto.id = docSnap.id;
-        mostrarVehiculo(auto);
-      });
+  window.accederAdmin = function() {
+    const clave = prompt("Ingrese la clave de administrador:");
+    if(clave === "Auto2025*"){
+      isAdmin = true;
+      document.getElementById("admin").classList.remove("hidden");
+      cargarVehiculos();
+    } else if(clave!==null){
+      alert("Clave incorrecta.");
     }
+  };
 
-    // Mostrar vehículo
-    function mostrarVehiculo(auto) {
-      const idCarrusel = `carrusel-${Date.now()}-${Math.floor(Math.random()*1000)}`;
-      const autoHTML = document.createElement('div');
-      autoHTML.className = 'bg-white shadow-md rounded overflow-hidden';
+  async function cargarVehiculos(){
+    listaVehiculos.innerHTML = '';
+    const querySnapshot = await getDocs(collection(db,"vehiculos"));
+    querySnapshot.forEach(docSnap=>{
+      const auto = docSnap.data();
+      auto.id = docSnap.id;
+      mostrarVehiculo(auto);
+    });
+  }
 
-      autoHTML.innerHTML = `
-        <div class="relative">
-          <img src="${auto.imagenes[0]}" alt="${auto.marca} ${auto.modelo}" class="w-full h-48 object-cover rounded-t">
-          ${auto.imagenes.length > 1 ? `
-          <button class="absolute left-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 p-1 rounded" onclick="anterior('${idCarrusel}')">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <button class="absolute right-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 p-1 rounded" onclick="siguiente('${idCarrusel}')">
-            <i class="fas fa-chevron-right"></i>
-          </button>` : ''}
-        </div>
-        <div class="p-4">
-          <h3 class="font-bold text-xl">${auto.marca} ${auto.modelo}</h3>
-          <p>Año: ${auto.anio}</p>
-          <p>Precio: ${auto.precio} ${auto.moneda}</p>
-          ${isAdmin ? `<div class="flex justify-end gap-2 mt-2">
-            <button class="bg-yellow-400 text-white px-2 py-1 rounded hover:bg-yellow-500" onclick="editarVehiculo('${auto.id}')">Editar</button>
-            <button class="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700" onclick="borrarVehiculo('${auto.id}')">Borrar</button>
-          </div>` : ''}
-        </div>
-      `;
-      autoHTML.dataset.imagenes = JSON.stringify(auto.imagenes);
-      autoHTML.dataset.pos = 0;
-      autoHTML.id = idCarrusel;
-      listaVehiculos.appendChild(autoHTML);
-    }
+  function mostrarVehiculo(auto){
+    const idCarrusel = `carrusel-${Date.now()}-${Math.floor(Math.random()*1000)}`;
+    const autoHTML = document.createElement('div');
+    autoHTML.className = 'bg-white shadow-md rounded overflow-hidden';
+    autoHTML.innerHTML = `
+      <div class="relative">
+        <img src="${auto.imagenes[0]}" alt="${auto.marca} ${auto.modelo}" class="w-full h-48 object-cover rounded-t">
+        ${auto.imagenes.length>1 ? `
+        <button class="absolute left-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 p-1 rounded" onclick="anterior('${idCarrusel}')">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="absolute right-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 p-1 rounded" onclick="siguiente('${idCarrusel}')">
+          <i class="fas fa-chevron-right"></i>
+        </button>` : ''}
+      </div>
+      <div class="p-4">
+        <h3 class="font-bold text-xl">${auto.marca} ${auto.modelo}</h3>
+        <p>Año: ${auto.anio}</p>
+        <p>Precio: ${auto.precio} ${auto.moneda}</p>
+        ${isAdmin ? `<div class="flex justify-end gap-2 mt-2">
+          <button class="bg-yellow-400 text-white px-2 py-1 rounded hover:bg-yellow-500" onclick="editarVehiculo('${auto.id}')">Editar</button>
+          <button class="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700" onclick="borrarVehiculo('${auto.id}', ${JSON.stringify(auto.imagenes)})">Borrar</button>
+        </div>` : ''}
+      </div>
+    `;
+    autoHTML.dataset.imagenes = JSON.stringify(auto.imagenes);
+    autoHTML.dataset.pos = 0;
+    autoHTML.id = idCarrusel;
+    listaVehiculos.appendChild(autoHTML);
+  }
 
-    // Carrusel
-    window.siguiente = function(id) {
-      const carrusel = document.getElementById(id);
-      let pos = parseInt(carrusel.dataset.pos);
-      const imgs = JSON.parse(carrusel.dataset.imagenes);
-      pos = (pos + 1) % imgs.length;
-      carrusel.querySelector('img').src = imgs[pos];
-      carrusel.dataset.pos = pos;
-    }
+  window.siguiente = function(id){
+    const carrusel = document.getElementById(id);
+    let pos = parseInt(carrusel.dataset.pos);
+    const imgs = JSON.parse(carrusel.dataset.imagenes);
+    pos = (pos+1)%imgs.length;
+    carrusel.querySelector('img').src = imgs[pos];
+    carrusel.dataset.pos = pos;
+  }
 
-    window.anterior = function(id) {
-      const carrusel = document.getElementById(id);
-      let pos = parseInt(carrusel.dataset.pos);
-      const imgs = JSON.parse(carrusel.dataset.imagenes);
-      pos = (pos - 1 + imgs.length) % imgs.length;
-      carrusel.querySelector('img').src = imgs[pos];
-      carrusel.dataset.pos = pos;
-    }
+  window.anterior = function(id){
+    const carrusel = document.getElementById(id);
+    let pos = parseInt(carrusel.dataset.pos);
+    const imgs = JSON.parse(carrusel.dataset.imagenes);
+    pos = (pos-1+imgs.length)%imgs.length;
+    carrusel.querySelector('img').src = imgs[pos];
+    carrusel.dataset.pos = pos;
+  }
 
-    // Buscador
-    window.filtrarVehiculos = function() {
-      const filtro = document.getElementById('buscador').value.toLowerCase();
-      const autos = listaVehiculos.children;
-      Array.from(autos).forEach(auto => {
-        const texto = auto.textContent.toLowerCase();
-        auto.style.display = texto.includes(filtro) ? '' : 'none';
-      });
-    }
+  window.filtrarVehiculos = function(){
+    const filtro = document.getElementById('buscador').value.toLowerCase();
+    const autos = listaVehiculos.children;
+    Array.from(autos).forEach(auto=>{
+      const texto = auto.textContent.toLowerCase();
+      auto.style.display = texto.includes(filtro)?'':'none';
+    });
+  }
 
-    // Guardar vehículo
-    formulario.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const marca = document.getElementById('marca').value;
-      const modelo = document.getElementById('modelo').value;
-      const anio = document.getElementById('anio').value;
-      const precio = document.getElementById('precio').value;
-      const moneda = document.getElementById('moneda').value;
-      const files = document.getElementById('imagenes').files;
+  formulario.addEventListener('submit', async function(e){
+    e.preventDefault();
+    const marca = document.getElementById('marca').value;
+    const modelo = document.getElementById('modelo').value;
+    const anio = document.getElementById('anio').value;
+    const precio = document.getElementById('precio').value;
+    const moneda = document.getElementById('moneda').value;
+    const files = document.getElementById('imagenes').files;
 
-      // Subir imágenes a Firebase Storage
-      const urls = [];
-      for (let file of files) {
+    let urls = [];
+    if(files.length>0){
+      for(let file of files){
         const storageRef = ref(storage, `vehiculos/${Date.now()}-${file.name}`);
         await uploadBytes(storageRef, file);
         const url = await getDownloadURL(storageRef);
         urls.push(url);
       }
-
-      const nuevoAuto = {
-        marca, modelo, anio, precio, moneda,
-        imagenes: urls
-      };
-
-      await addDoc(collection(db, "vehiculos"), nuevoAuto);
-      formulario.reset();
-      cargarVehiculos();
-    });
-
-    // Editar y Borrar
-    window.editarVehiculo = async function(id) {
-      // Aquí se puede implementar lógica similar: traer datos, rellenar formulario y actualizar Firestore
-      alert("Función Editar pendiente de implementar (similar a agregar, usando setDoc).");
     }
 
-    window.borrarVehiculo = async function(id) {
-      if (confirm("Desea eliminar este vehículo?")) {
-        await deleteDoc(doc(db, "vehiculos", id));
-        cargarVehiculos();
-      }
+    if(editId){
+      // editar
+      const docRef = doc(db,"vehiculos",editId);
+      const existingDoc = await getDoc(docRef);
+      let existingData = existingDoc.data();
+      if(urls.length===0) urls = existingData.imagenes; // mantener imágenes anteriores si no cargamos nuevas
+      await setDoc(docRef,{marca,modelo,anio,precio,moneda,imagenes:urls});
+      editId = null;
+    } else {
+      // agregar
+      await addDoc(collection(db,"vehiculos"),{marca,modelo,anio,precio,moneda,imagenes:urls});
     }
 
-    // Inicial
+    formulario.reset();
     cargarVehiculos();
+  });
 
-  </script>
+  window.editarVehiculo = async function(id){
+    const docRef = doc(db,"vehiculos",id);
+    const docSnap = await getDoc(docRef);
+    if(docSnap.exists()){
+      const data = docSnap.data();
+      document.getElementById('marca').value = data.marca;
+      document.getElementById('modelo').value = data.modelo;
+      document.getElementById('anio').value = data.anio;
+      document.getElementById('precio').value = data.precio;
+      document.getElementById('moneda').value = data.moneda;
+      editId = id;
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+  }
+
+  window.borrarVehiculo = async function(id, imagenes){
+    if(confirm("Desea eliminar este vehículo?")){
+      const docRef = doc(db,"vehiculos",id);
+      await deleteDoc(docRef);
+      // borrar imágenes de storage
+      for(let url of imagenes){
+        try{
+          const path = url.split("%2F")[1].split("?")[0]; // obtener nombre
+          const fileRef = ref(storage, `vehiculos/${path}`);
+          await deleteObject(fileRef);
+        }catch(e){}
+      }
+      cargarVehiculos();
+    }
+  }
+
+  cargarVehiculos();
+</script>
 
 </body>
 </html>
