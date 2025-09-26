@@ -125,8 +125,10 @@
   </footer>
 
   <script>
-    // Variable global para controlar permisos de administrador
-    let isAdmin = false;
+    let isAdmin = false; // controla permisos de administrador
+    const formulario = document.getElementById('formularioVehiculos');
+    const listaVehiculos = document.getElementById('vehiculos-lista');
+    let vehiculos = JSON.parse(localStorage.getItem('vehiculos')) || [];
 
     // Acceso administrador
     function accederAdmin() {
@@ -136,57 +138,13 @@
         document.getElementById("admin").classList.remove("hidden");
         window.location.hash = "#admin";
         listaVehiculos.innerHTML = '';
-        vehiculos.forEach(auto => mostrarVehiculo(auto)); // refresca lista con botones
+        vehiculos.forEach(auto => mostrarVehiculo(auto));
       } else if (clave !== null) {
         alert("Clave incorrecta.");
       }
     }
 
-    const formulario = document.getElementById('formularioVehiculos');
-    const listaVehiculos = document.getElementById('vehiculos-lista');
-
-    // Cargar vehículos desde LocalStorage
-    let vehiculos = JSON.parse(localStorage.getItem('vehiculos')) || [];
-    vehiculos.forEach(auto => mostrarVehiculo(auto));
-
-    // Guardar la función original para restaurarla después de editar
-    const agregarVehiculoOriginal = formulario.onsubmit;
-
-    formulario.addEventListener('submit', agregarVehiculoOriginal = function(e) {
-      e.preventDefault();
-      agregarVehiculo();
-    });
-
-    function agregarVehiculo(index = null) {
-      const marca = document.getElementById('marca').value;
-      const modelo = document.getElementById('modelo').value;
-      const anio = document.getElementById('anio').value;
-      const precio = document.getElementById('precio').value;
-      const moneda = document.getElementById('moneda').value;
-      const files = document.getElementById('imagenes').files;
-
-      const readerPromises = Array.from(files).map(file => {
-        return new Promise(resolve => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(file);
-        });
-      });
-
-      Promise.all(readerPromises).then(imagenesBase64 => {
-        let nuevoAuto = { marca, modelo, anio, precio, moneda, imagenes: index !== null && files.length === 0 ? vehiculos[index].imagenes : imagenesBase64 };
-        if (index === null) {
-          vehiculos.push(nuevoAuto);
-        } else {
-          vehiculos[index] = nuevoAuto;
-        }
-        localStorage.setItem('vehiculos', JSON.stringify(vehiculos));
-        listaVehiculos.innerHTML = '';
-        vehiculos.forEach(auto => mostrarVehiculo(auto));
-        formulario.reset();
-      });
-    }
-
+    // Función para mostrar vehículos
     function mostrarVehiculo(auto) {
       const index = vehiculos.indexOf(auto);
       const idCarrusel = `carrusel-${Date.now()}-${Math.floor(Math.random()*1000)}`;
@@ -220,7 +178,6 @@
       autoHTML.dataset.imagenes = JSON.stringify(auto.imagenes);
       autoHTML.dataset.pos = 0;
       autoHTML.id = idCarrusel;
-
       listaVehiculos.appendChild(autoHTML);
     }
 
@@ -253,21 +210,65 @@
       });
     }
 
+    // Función para agregar vehículo
+    function agregarVehiculo(index = null) {
+      const marca = document.getElementById('marca').value;
+      const modelo = document.getElementById('modelo').value;
+      const anio = document.getElementById('anio').value;
+      const precio = document.getElementById('precio').value;
+      const moneda = document.getElementById('moneda').value;
+      const files = document.getElementById('imagenes').files;
+
+      const readerPromises = Array.from(files).map(file => {
+        return new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(readerPromises).then(imagenesBase64 => {
+        let nuevoAuto = { 
+          marca, modelo, anio, precio, moneda, 
+          imagenes: index !== null && files.length === 0 ? vehiculos[index].imagenes : imagenesBase64 
+        };
+        if (index === null) {
+          vehiculos.push(nuevoAuto);
+        } else {
+          vehiculos[index] = nuevoAuto;
+        }
+        localStorage.setItem('vehiculos', JSON.stringify(vehiculos));
+        listaVehiculos.innerHTML = '';
+        vehiculos.forEach(auto => mostrarVehiculo(auto));
+        formulario.reset();
+      });
+    }
+
+    // Listener general para agregar vehículo
+    function manejarSubmit(e) {
+      e.preventDefault();
+      agregarVehiculo();
+    }
+    formulario.addEventListener('submit', manejarSubmit);
+
     // Editar vehículo
     function editarVehiculo(index) {
       const auto = vehiculos[index];
-
       document.getElementById('marca').value = auto.marca;
       document.getElementById('modelo').value = auto.modelo;
       document.getElementById('anio').value = auto.anio;
       document.getElementById('precio').value = auto.precio;
       document.getElementById('moneda').value = auto.moneda;
 
-      formulario.onsubmit = function(e) {
+      // Remover temporalmente listener de agregar
+      formulario.removeEventListener('submit', manejarSubmit);
+
+      formulario.addEventListener('submit', function actualizar(e) {
         e.preventDefault();
         agregarVehiculo(index);
-        formulario.onsubmit = agregarVehiculoOriginal;
-      };
+        formulario.removeEventListener('submit', actualizar);
+        formulario.addEventListener('submit', manejarSubmit);
+      });
     }
 
     // Borrar vehículo
@@ -279,6 +280,10 @@
         vehiculos.forEach(auto => mostrarVehiculo(auto));
       }
     }
+
+    // Inicializar lista de vehículos al cargar la página
+    vehiculos.forEach(auto => mostrarVehiculo(auto));
+
   </script>
 
 </body>
